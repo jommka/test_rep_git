@@ -1,0 +1,76 @@
+version: "3.3"
+
+services:
+
+  backend:
+    build:
+      dockerfile: docker/back.dockerfile
+    command:
+      - npm run start
+    environment:
+      MYSQL_HOST: "db"
+      CORS_ORIGIN_REGEX: "http([s])?:\/\/localhost:3002"
+    env_file:
+      - .env
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: [ "CMD-SHELL", "python --version" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - db
+
+  frontend:
+    container_name: front_container
+    image: frontend:v1
+    environment:
+      SERVER_ORIGIN: "http://localhost:3001"
+      NODE_ENV: development
+    build:
+      context: .
+      dockerfile: docker/front.dockerfile
+    ports:
+      - "3002:3002"
+    healthcheck:
+      test: [ "CMD-SHELL", "python --version" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - backend
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tradeoffer_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db_data:/var/lib/mysql
+    restart: on-failure
+
+  pgadmin:
+    container_name: pgadmin_container
+    image: adminer:latest
+    environment:
+      ADMINER_DEFAULT_DB_DRIVER: mysql
+      ADMINER_DEFAULT_SERVER: mysql_db
+      ADMINER_PLUGINS: tables-filter tinymce
+    volumes:
+      - ./pgadmin:/var/lib/pgadmin
+    ports:
+      - "30000:8080"
+    depends_on:
+      - db
+    profiles: ["develop"]
+    restart: on-failure
+
+
+
+
+
+
+
